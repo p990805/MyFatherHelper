@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>렌탈 견적서 자동 생성 프로그램</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎯 렌탈 견적서 자동 생성 프로그램</h1>
+      <div class="header-actions">
+        <button id="importDataBtn" class="btn btn-secondary">📥 마스터 데이터 가져오기</button>
+        <span id="itemCount" class="item-count">품목: 0개</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- 행사 정보 입력 -->
+      <section class="card">
+        <h2>📋 행사 정보</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="eventName">행사명</label>
+            <input type="text" id="eventName" placeholder="예: 포천 한탄강 드론축제">
+          </div>
+          <div class="form-group">
+            <label for="eventDate">행사일</label>
+            <input type="date" id="eventDate">
+          </div>
+          <div class="form-group">
+            <label for="eventLocation">행사장소</label>
+            <input type="text" id="eventLocation" placeholder="예: 포천한탄강 드론축제장">
+          </div>
+          <div class="form-group">
+            <label for="contactPerson">담당자</label>
+            <input type="text" id="contactPerson" placeholder="예: 신상희 부장님">
+          </div>
+          <div class="form-group">
+            <label for="contactPhone">연락처</label>
+            <input type="tel" id="contactPhone" placeholder="010-0000-0000">
+          </div>
+          <div class="form-group">
+            <label for="rentalPeriod">렌탈 기간</label>
+            <select id="rentalPeriod">
+              <option value="0">1~3일</option>
+              <option value="1">4~7일</option>
+              <option value="2">8~10일</option>
+              <option value="3">11~14일</option>
+              <option value="4">15~20일</option>
+              <option value="5">21~31일</option>
+              <option value="6">1~2개월</option>
+              <option value="7">2~3개월</option>
+            </select>
+          </div>
+        <div class="form-group">
+            <label>설치 날짜:</label>
+            <input type="date" id="installDate" required>
+        </div>
+
+        <div class="form-group">
+            <label>회수 날짜:</label>
+            <input type="date" id="retrievalDate" required>
+        </div>
+        </div>
+      </section>
+
+      <!-- 운송비 입력 -->
+      <section class="card">
+        <h2>🚚 설치 회수비 (운송비)</h2>
+        <div class="form-grid transport-grid">
+          <div class="form-group">
+            <label for="transportQuantity">왕복 횟수</label>
+            <input type="number" id="transportQuantity" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label for="transportUnitPrice">회당 단가 (원)</label>
+            <input type="number" id="transportUnitPrice" value="350000" min="0">
+          </div>
+        </div>
+      </section>
+
+      <!-- 품목 선택 -->
+      <section class="card">
+        <h2>📦 품목 선택</h2>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="🔍 품목 검색...">
+        </div>
+        <div id="itemList" class="item-list">
+          <!-- 품목 목록이 여기에 동적으로 표시됩니다 -->
+        </div>
+      </section>
+
+      <!-- 선택된 품목 -->
+      <section class="card">
+        <h2>✅ 선택된 품목</h2>
+        <div id="selectedItems" class="selected-items">
+          <p class="empty-message">선택된 품목이 없습니다.</p>
+        </div>
+      </section>
+
+      <!-- 합계 -->
+      <section class="card total-section">
+        <h2>💰 합계</h2>
+        <div class="total-grid">
+          <div class="total-row">
+            <span>품목 소계</span>
+            <span id="subtotal">₩0</span>
+          </div>
+          <div class="total-row">
+            <span>설치 회수비</span>
+            <span id="transportTotal">₩0</span>
+          </div>
+          <div class="total-row subtotal-row">
+            <span>공급가액</span>
+            <span id="supplyTotal">₩0</span>
+          </div>
+          <div class="total-row">
+            <span>부가세 (10%)</span>
+            <span id="vat">₩0</span>
+          </div>
+          <div class="total-row grand-total-row">
+            <span>총 합계</span>
+            <span id="grandTotal">₩0</span>
+          </div>
+          <div class="korean-amount" id="koreanAmount">일금 영원정</div>
+        </div>
+      </section>
+
+      <!-- 버튼 -->
+      <div class="action-buttons">
+        <button id="saveBtn" class="btn btn-primary">💾 견적서 저장</button>
+        <button id="generateExcelBtn" class="btn btn-success">📄 Excel 견적서 생성</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
