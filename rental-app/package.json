@@ -1,0 +1,31 @@
+{
+  "name": "rental-app",
+  "version": "1.0.0",
+  "description": "아버지를 위한 렌탈 견적서 자동 생성 프로그램",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win"
+  },
+  "keywords": ["rental", "quote"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.rental.quote.generator",
+    "productName": "HelpMyFatherEstimate",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
