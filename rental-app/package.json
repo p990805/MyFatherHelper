@@ -7,7 +7,10 @@
     "start": "electron .",
     "build:win": "electron-builder --win"
   },
-  "keywords": ["rental", "quote"],
+  "keywords": [
+    "rental",
+    "quote"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -15,8 +18,8 @@
     "electron-builder": "^24.9.1"
   },
   "dependencies": {
-    "better-sqlite3": "^9.2.2",
-    "xlsx": "^0.18.5"
+    "exceljs": "^4.4.0",
+    "lowdb": "^1.0.0"
   },
   "build": {
     "appId": "com.rental.quote.generator",
