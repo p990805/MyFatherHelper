@@ -120,11 +120,10 @@ ipcMain.handle('save-quote', (event, quoteData) => {
 // Excel 견적서 생성 (ExcelJS 사용)
 ipcMain.handle('generate-excel', async (event, quoteData) => {
   try {
-    // 템플릿 파일 읽기
     const templatePath = path.join(__dirname, 'templates', '견적서_템플릿.xlsx');
     
     if (!fs.existsSync(templatePath)) {
-      return { success: false, error: '템플릿 파일을 찾을 수 없습니다. templates/견적서_템플릿.xlsx 파일을 확인하세요.' };
+      return { success: false, error: '템플릿 파일을 찾을 수 없습니다.' };
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -137,78 +136,141 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
     worksheet.getCell('B4').value = quoteData.eventLocation;
     worksheet.getCell('B5').value = `${quoteData.contactPhone} ${quoteData.contactPerson}`;
 
-    // ⭐ 먼저 고정 위치(22행)에 설치/회수 정보 입력
-    worksheet.getCell('A22').value = quoteData.eventLocation;    // 행사 장소
-    worksheet.getCell('C22').value = quoteData.installDate;      // 설치 날짜
-    worksheet.getCell('H22').value = quoteData.retrievalDate;    // 회수 날짜
-
-    const itemStartRow = 9;   // 품목 시작 행
-    const fixedRowStart = 17; // 고정 양식 시작 행 (합계, 세액 등)
-    const maxItemRows = fixedRowStart - itemStartRow; // 기본 템플릿의 품목 행 개수 (8개)
+    const itemStartRow = 9;
+    const fixedRowStart = 17;
+    const maxItemRows = fixedRowStart - itemStartRow;
     
-    // 총 품목 개수 계산 (품목 + 운송비)
     const totalItemCount = quoteData.items.length + (quoteData.transportQuantity > 0 ? 1 : 0);
     
-    // 기본 행보다 많으면 행 삽입 필요
+    // 행 삽입이 필요한 경우
     let rowsAdded = 0;
     if (totalItemCount > maxItemRows) {
       const additionalRows = totalItemCount - maxItemRows;
       rowsAdded = additionalRows;
       
-      // ⭐ spliceRows를 사용하여 17행 위치에 빈 행 삽입
-      for (let i = 0; i < additionalRows; i++) {
-        worksheet.spliceRows(fixedRowStart, 0, []); // 빈 행 삽入
+      const templateRow = worksheet.getRow(9);
+      
+      // 스타일 정보 저장
+      const columnStyles = {};
+      for (let col = 1; col <= 8; col++) {
+        const cell = templateRow.getCell(col);
+        columnStyles[col] = {
+          border: cell.border ? JSON.parse(JSON.stringify(cell.border)) : undefined,
+          fill: cell.fill ? JSON.parse(JSON.stringify(cell.fill)) : undefined,
+          font: cell.font ? JSON.parse(JSON.stringify(cell.font)) : undefined,
+          alignment: cell.alignment ? JSON.parse(JSON.stringify(cell.alignment)) : undefined,
+          numFmt: cell.numFmt
+        };
       }
       
-      // 🖼️ 이미지/도형 객체들을 아래로 이동
-      if (worksheet.getImages) {
-        worksheet.getImages().forEach(image => {
-          // 17행 이후에 있는 이미지들을 아래로 이동
-          if (image.range && image.range.tl && image.range.tl.nativeRow >= fixedRowStart) {
-            image.range.tl.nativeRow += additionalRows;
-            image.range.br.nativeRow += additionalRows;
+      // 행 삽입
+      for (let i = 0; i < additionalRows; i++) {
+        worksheet.spliceRows(fixedRowStart + i, 0, []);
+        
+        const newRow = worksheet.getRow(fixedRowStart + i);
+        newRow.height = templateRow.height;
+        
+        for (let col = 1; col <= 8; col++) {
+          const newCell = newRow.getCell(col);
+          const style = columnStyles[col];
+          
+          if (style) {
+            if (style.border) newCell.border = style.border;
+            if (style.fill) newCell.fill = style.fill;
+            if (style.font) newCell.font = style.font;
+            if (style.alignment) newCell.alignment = style.alignment;
+            if (style.numFmt) newCell.numFmt = style.numFmt;
           }
-        });
+        }
       }
     }
 
-    // 품목 데이터 입력 (9행부터)
+    // 하단 정보 업데이트
+    const infoRow = 22 + rowsAdded;
+    worksheet.getCell(`A${infoRow}`).value = `행사 장소 : ${quoteData.eventLocation}`;
+    worksheet.getCell(`C${infoRow}`).value = `설치 날짜 : ${quoteData.installDate}`;
+    worksheet.getCell(`H${infoRow}`).value = `회수 날짜 : ${quoteData.retrievalDate}`;
+
+    // 품목 데이터 입력
     let rowIndex = itemStartRow;
+    
     quoteData.items.forEach(item => {
-      worksheet.getCell(`A${rowIndex}`).value = item.name;          // 품명
-      worksheet.getCell(`B${rowIndex}`).value = item.size || '';    // 규격
-      worksheet.getCell(`F${rowIndex}`).value = item.quantity;      // 수량
-      worksheet.getCell(`F${rowIndex}`).numFmt = '#,##0';           // 수량 포맷
-      worksheet.getCell(`G${rowIndex}`).value = item.unitPrice;     // 단가
-      worksheet.getCell(`G${rowIndex}`).numFmt = '#,##0';           // 단가 포맷
+      const row = worksheet.getRow(rowIndex);
       
-      // H열에 합계 함수 추가 (수량 * 단가)
-      worksheet.getCell(`H${rowIndex}`).value = { formula: `G${rowIndex}*F${rowIndex}` };
-      worksheet.getCell(`H${rowIndex}`).numFmt = '#,##0';           // 합계 포맷
+      row.getCell(1).value = item.name;
+      row.getCell(2).value = item.size || '';
+      
+      const qty = Number(item.quantity);
+      const price = Number(item.unitPrice);
+      
+      row.getCell(6).value = qty;
+      row.getCell(6).numFmt = '#,##0';
+      row.getCell(7).value = price;
+      row.getCell(7).numFmt = '#,##0';
+      
+      row.getCell(8).value = { formula: `F${rowIndex}*G${rowIndex}` };
+      row.getCell(8).numFmt = '#,##0';
       
       rowIndex++;
     });
 
     // 운송비 추가
     if (quoteData.transportQuantity > 0) {
-      worksheet.getCell(`A${rowIndex}`).value = '설치 회수비(왕복)';
-      worksheet.getCell(`F${rowIndex}`).value = quoteData.transportQuantity;
-      worksheet.getCell(`F${rowIndex}`).numFmt = '#,##0';
-      worksheet.getCell(`G${rowIndex}`).value = quoteData.transportUnitPrice;
-      worksheet.getCell(`G${rowIndex}`).numFmt = '#,##0';
+      const row = worksheet.getRow(rowIndex);
       
-      // 운송비 행에도 H열 함수 추가
-      worksheet.getCell(`H${rowIndex}`).value = { formula: `G${rowIndex}*F${rowIndex}` };
-      worksheet.getCell(`H${rowIndex}`).numFmt = '#,##0';
+      row.getCell(1).value = '설치 회수비(왕복)';
+      
+      const qty = Number(quoteData.transportQuantity);
+      const price = Number(quoteData.transportUnitPrice);
+      
+      row.getCell(6).value = qty;
+      row.getCell(6).numFmt = '#,##0';
+      row.getCell(7).value = price;
+      row.getCell(7).numFmt = '#,##0';
+      
+      row.getCell(8).value = { formula: `F${rowIndex}*G${rowIndex}` };
+      row.getCell(8).numFmt = '#,##0';
     }
 
-    // 저장 위치 선택
+    // ⭐ 이미지 추가 (셀에 배치)
+    const arImagePath = path.join(__dirname, 'templates', 'AR.png');
+    const nhImagePath = path.join(__dirname, 'templates', 'NH.png');
+
+    // NH 이미지: A23~B23
+    if (fs.existsSync(nhImagePath)) {
+      const nhImageId = workbook.addImage({
+        filename: nhImagePath,
+        extension: 'png',
+      });
+      
+      const nhRow = 22 + rowsAdded;
+      worksheet.addImage(nhImageId, {
+        tl: { col: 0, row: nhRow },
+        br: { col: 1.99, row: nhRow + 0.99 },
+        editAs: 'oneCell'  // 셀에 배치
+      });
+    }
+
+    // AR 이미지: A24~B24
+    if (fs.existsSync(arImagePath)) {
+      const arImageId = workbook.addImage({
+        filename: arImagePath,
+        extension: 'png',
+      });
+      
+      const arRow = 23 + rowsAdded;
+      worksheet.addImage(arImageId, {
+        tl: { col: 0, row: arRow },
+        br: { col: 1.99, row: arRow + 0.99 },
+        editAs: 'oneCell'  // 셀에 배치
+      });
+    }
+
+    // 저장
     const result = await dialog.showSaveDialog(mainWindow, {
       title: '견적서 저장',
       defaultPath: `견적서_${quoteData.eventName}_${quoteData.eventDate}.xlsx`,
-      filters: [
-        { name: 'Excel Files', extensions: ['xlsx'] }
-      ]
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }]
     });
 
     if (!result.canceled) {
