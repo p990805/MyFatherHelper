@@ -248,14 +248,26 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       rowIndex++;
     }
 
-    // ⭐ 합계 행 위치 계산 및 수식 업데이트
-    const totalRow = fixedRowStart + rowsAdded;
+    // ⭐ 합계 관련 행 위치 계산
+    const totalRow = fixedRowStart + rowsAdded;      // 공급가액 합계 행
+    const vatRow = totalRow + 1;                      // 세액 행
+    const grandTotalRow = totalRow + 2;               // 최종 합계 행
     const lastItemRow = rowIndex - 1;
     
-    // H열(8번 컬럼)의 합계 수식 업데이트
+    // 1. 공급가액 합계 (H17 또는 동적 위치)
     const totalCell = worksheet.getRow(totalRow).getCell(8);
     totalCell.value = { formula: `SUM(H${itemStartRow}:H${lastItemRow})` };
     totalCell.numFmt = '#,##0';
+    
+    // 2. 세액 (부가세 10%) - 합계의 10%
+    const vatCell = worksheet.getRow(vatRow).getCell(8);
+    vatCell.value = { formula: `H${totalRow}*0.1` };
+    vatCell.numFmt = '#,##0';
+    
+    // 3. 최종 합계 (공급가액 + 세액)
+    const grandTotalCell = worksheet.getRow(grandTotalRow).getCell(8);
+    grandTotalCell.value = { formula: `H${totalRow}+H${vatRow}` };
+    grandTotalCell.numFmt = '#,##0';
 
     // 하단 정보 업데이트
     const infoRow = 22 + rowsAdded;
