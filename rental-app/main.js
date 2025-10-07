@@ -136,7 +136,7 @@ ipcMain.handle('save-quote', (event, quoteData) => {
   }
 });
 
-// main.js의 generate-excel 핸들러 부분 수정
+// main.js의 generate-excel 핸들러 부분 - B7 수식 업데이트 추가
 
 ipcMain.handle('generate-excel', async (event, quoteData) => {
   try {
@@ -268,6 +268,12 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
     const grandTotalCell = worksheet.getRow(grandTotalRow).getCell(8);
     grandTotalCell.value = { formula: `H${totalRow}+H${vatRow}` };
     grandTotalCell.numFmt = '#,##0';
+
+    // ⭐ 4. B7 셀의 금액 표시 수식 업데이트
+    const b7Cell = worksheet.getCell('B7');
+    b7Cell.value = { 
+      formula: `"일금 "&NUMBERSTRING(H${grandTotalRow},1)&" 원정 (\\"&TEXT(H${grandTotalRow},"#,##0")&") 부가세포함"` 
+    };
 
     // 하단 정보 업데이트
     const infoRow = 22 + rowsAdded;
