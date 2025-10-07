@@ -42,7 +42,8 @@ function createWindow() {
   // mainWindow.webContents.openDevTools();
 }
 
-// Excel 파일에서 마스터 데이터 가져오기
+// main.js의 import-master-data 핸들러 부분 수정
+
 ipcMain.handle('import-master-data', async (event, filePath) => {
   try {
     const workbook = new ExcelJS.Workbook();
@@ -54,22 +55,22 @@ ipcMain.handle('import-master-data', async (event, filePath) => {
     // 데이터 행 시작 (헤더 제외, 4번째 행부터)
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber >= 4) {
-        const id = row.getCell(5).value; // E열 (번호)
+        const id = getCellValue(row.getCell(5)); // E열 (번호)
         if (id) {
           items.push({
-            id: id,
-            name: row.getCell(1).value || '', // A열 (제품명)
-            size: row.getCell(4).value || '', // D열 (사이즈)
-            category: row.getCell(1).value ? String(row.getCell(1).value).split('\n')[0] : '',
+            id: String(id),
+            name: String(getCellValue(row.getCell(1)) || ''), // A열 (제품명)
+            size: String(getCellValue(row.getCell(4)) || ''), // D열 (사이즈)
+            category: getCellValue(row.getCell(1)) ? String(getCellValue(row.getCell(1))).split('\n')[0] : '',
             spec: '',
-            price_1_3: row.getCell(6).value || 0,
-            price_4_7: row.getCell(7).value || 0,
-            price_8_10: row.getCell(8).value || 0,
-            price_11_14: row.getCell(9).value || 0,
-            price_15_20: row.getCell(10).value || 0,
-            price_21_31: row.getCell(11).value || 0,
-            price_1_2m: row.getCell(12).value || 0,
-            price_2_3m: row.getCell(13).value || 0
+            price_1_3: Number(getCellValue(row.getCell(6))) || 0,
+            price_4_7: Number(getCellValue(row.getCell(7))) || 0,
+            price_8_10: Number(getCellValue(row.getCell(8))) || 0,
+            price_11_14: Number(getCellValue(row.getCell(9))) || 0,
+            price_15_20: Number(getCellValue(row.getCell(10))) || 0,
+            price_21_31: Number(getCellValue(row.getCell(11))) || 0,
+            price_1_2m: Number(getCellValue(row.getCell(12))) || 0,
+            price_2_3m: Number(getCellValue(row.getCell(13))) || 0
           });
         }
       }
@@ -84,6 +85,24 @@ ipcMain.handle('import-master-data', async (event, filePath) => {
     return { success: false, error: error.message };
   }
 });
+
+// 셀 값을 올바르게 가져오는 헬퍼 함수
+function getCellValue(cell) {
+  if (!cell) return '';
+  
+  // 수식 결과가 있으면 그것을 반환
+  if (cell.result !== undefined && cell.result !== null) {
+    return cell.result;
+  }
+  
+  // 값이 객체인 경우 (수식 객체)
+  if (typeof cell.value === 'object' && cell.value !== null) {
+    return cell.value.result || cell.value.text || '';
+  }
+  
+  // 일반 값
+  return cell.value || '';
+}
 
 // 모든 품목 가져오기
 ipcMain.handle('get-all-items', () => {
@@ -117,7 +136,8 @@ ipcMain.handle('save-quote', (event, quoteData) => {
   }
 });
 
-// Excel 견적서 생성 (ExcelJS 사용)
+// main.js의 generate-excel 핸들러 부분 - B7 수식 업데이트 추가
+
 ipcMain.handle('generate-excel', async (event, quoteData) => {
   try {
     const templatePath = path.join(__dirname, 'templates', '견적서_템플릿.xlsx');
@@ -185,12 +205,6 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       }
     }
 
-    // 하단 정보 업데이트
-    const infoRow = 22 + rowsAdded;
-    worksheet.getCell(`A${infoRow}`).value = `행사 장소 : ${quoteData.eventLocation}`;
-    worksheet.getCell(`C${infoRow}`).value = `설치 날짜 : ${quoteData.installDate}`;
-    worksheet.getCell(`H${infoRow}`).value = `회수 날짜 : ${quoteData.retrievalDate}`;
-
     // 품목 데이터 입력
     let rowIndex = itemStartRow;
     
@@ -230,9 +244,44 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       
       row.getCell(8).value = { formula: `F${rowIndex}*G${rowIndex}` };
       row.getCell(8).numFmt = '#,##0';
+      
+      rowIndex++;
     }
 
-    // ⭐ 이미지 추가 (셀에 배치)
+    // ⭐ 합계 관련 행 위치 계산
+    const totalRow = fixedRowStart + rowsAdded;      // 공급가액 합계 행
+    const vatRow = totalRow + 1;                      // 세액 행
+    const grandTotalRow = totalRow + 2;               // 최종 합계 행
+    const lastItemRow = rowIndex - 1;
+    
+    // 1. 공급가액 합계 (H17 또는 동적 위치)
+    const totalCell = worksheet.getRow(totalRow).getCell(8);
+    totalCell.value = { formula: `SUM(H${itemStartRow}:H${lastItemRow})` };
+    totalCell.numFmt = '#,##0';
+    
+    // 2. 세액 (부가세 10%) - 합계의 10%
+    const vatCell = worksheet.getRow(vatRow).getCell(8);
+    vatCell.value = { formula: `H${totalRow}*0.1` };
+    vatCell.numFmt = '#,##0';
+    
+    // 3. 최종 합계 (공급가액 + 세액)
+    const grandTotalCell = worksheet.getRow(grandTotalRow).getCell(8);
+    grandTotalCell.value = { formula: `H${totalRow}+H${vatRow}` };
+    grandTotalCell.numFmt = '#,##0';
+
+    // ⭐ 4. B7 셀의 금액 표시 수식 업데이트
+    const b7Cell = worksheet.getCell('B7');
+    b7Cell.value = { 
+      formula: `"일금 "&NUMBERSTRING(H${grandTotalRow},1)&" 원정 (\\"&TEXT(H${grandTotalRow},"#,##0")&") 부가세포함"` 
+    };
+
+    // 하단 정보 업데이트
+    const infoRow = 22 + rowsAdded;
+    worksheet.getCell(`A${infoRow}`).value = `행사 장소 : ${quoteData.eventLocation}`;
+    worksheet.getCell(`C${infoRow}`).value = `설치 날짜 : ${quoteData.installDate}`;
+    worksheet.getCell(`H${infoRow}`).value = `회수 날짜 : ${quoteData.retrievalDate}`;
+
+    // 이미지 추가
     const arImagePath = path.join(__dirname, 'templates', 'AR.png');
     const nhImagePath = path.join(__dirname, 'templates', 'NH.png');
 
@@ -247,7 +296,7 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       worksheet.addImage(nhImageId, {
         tl: { col: 0, row: nhRow },
         br: { col: 1.99, row: nhRow + 0.99 },
-        editAs: 'oneCell'  // 셀에 배치
+        editAs: 'oneCell'
       });
     }
 
@@ -262,7 +311,7 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       worksheet.addImage(arImageId, {
         tl: { col: 0, row: arRow },
         br: { col: 1.99, row: arRow + 0.99 },
-        editAs: 'oneCell'  // 셀에 배치
+        editAs: 'oneCell'
       });
     }
 
