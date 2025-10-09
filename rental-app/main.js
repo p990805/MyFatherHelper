@@ -8,7 +8,8 @@ const ExcelJS = require('exceljs');
 let mainWindow;
 let db;
 
-// 데이터베이스 초기화 (LowDB - JSON 파일 기반)
+// 데이터베이스 초기화 (LowDB - JSON 파일 기반) 
+// 데이터베이스 초기화
 function initDatabase() {
   const dbPath = path.join(app.getPath('userData'), 'rental-db.json');
   const adapter = new FileSync(dbPath);

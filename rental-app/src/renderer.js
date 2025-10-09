@@ -78,8 +78,14 @@ function renderItemList(filter = '') {
       const periodIndex = parseInt(elements.rentalPeriod.value);
       const price = item[priceFields[periodIndex]] || 0;
       
+      // 이미지 태그 추가
+      const imageHtml = item.image 
+        ? `<img src="file://${item.image}" alt="${item.name}" class="item-image" onerror="this.style.display='none'">`
+        : '<div class="item-no-image">📷</div>';
+      
       html += `
         <div class="item-card" data-id="${item.id}">
+          ${imageHtml}
           <div class="item-info">
             <div class="item-name">${item.name}</div>
             <div class="item-size">${item.size || ''}</div>
