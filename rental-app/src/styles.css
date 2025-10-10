@@ -385,3 +385,30 @@ header h1 {
 ::-webkit-scrollbar-thumb:hover {
   background: #5568d3;
 }
+
+.item-card {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  gap: 12px; /* 추가: 이미지와 텍스트 사이 간격 */
+  align-items: center;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+/* 추가: 품목 이미지 스타일 */
+.item-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  border: 1px solid #e0e0e0;
+}
+
+.item-info {
+  flex: 1;
+}

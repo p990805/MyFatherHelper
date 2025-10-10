@@ -8,7 +8,8 @@ const ExcelJS = require('exceljs');
 let mainWindow;
 let db;
 
-// 데이터베이스 초기화 (LowDB - JSON 파일 기반)
+// 데이터베이스 초기화 (LowDB - JSON 파일 기반) 
+// 데이터베이스 초기화
 function initDatabase() {
   const dbPath = path.join(app.getPath('userData'), 'rental-db.json');
   const adapter = new FileSync(dbPath);
@@ -138,6 +139,8 @@ ipcMain.handle('save-quote', (event, quoteData) => {
 
 // main.js의 generate-excel 핸들러 부분 - B7 수식 업데이트 추가
 
+// main.jsの generate-excel ハンドラー部分 - 이미지 추가 버전
+
 ipcMain.handle('generate-excel', async (event, quoteData) => {
   try {
     const templatePath = path.join(__dirname, 'templates', '견적서_템플릿.xlsx');
@@ -172,7 +175,7 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       
       // 스타일 정보 저장
       const columnStyles = {};
-      for (let col = 1; col <= 8; col++) {
+      for (let col = 1; col <= 9; col++) {
         const cell = templateRow.getCell(col);
         columnStyles[col] = {
           border: cell.border ? JSON.parse(JSON.stringify(cell.border)) : undefined,
@@ -188,9 +191,9 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
         worksheet.spliceRows(fixedRowStart + i, 0, []);
         
         const newRow = worksheet.getRow(fixedRowStart + i);
-        newRow.height = templateRow.height;
+        newRow.height = 60; // 높이 증가
         
-        for (let col = 1; col <= 8; col++) {
+        for (let col = 1; col <= 9; col++) {
           const newCell = newRow.getCell(col);
           const style = columnStyles[col];
           
@@ -205,10 +208,57 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       }
     }
 
-    // 품목 데이터 입력
+    // 이미지 매핑
+    const imageMapping = {
+      'A-1': '1.png', 'A-2': '1.png', 'A-3': '1.png',
+      'A-4': '2.png', 'A-5': '2.png', 'A-6': '2.png', 'A-7': '2.png',
+      'A-8': '3.png', 'A-9': '3.png', 'A-10': '3.png',
+      'A-11': '4.png', 'A-12': '4.png', 'A-13': '4.png',
+      'A-14': '5.png', 'A-15': '5.png',
+      'A-16': '6.png', 'A-17': '6.png', 'A-18': '6.png',
+      'A-19': '7.png', 'A-20': '7.png', 'A-21': '7.png',
+      'A-22': '8.png',
+      'A-23': '9.png',
+      'A-24': '10.png', 'A-25': '10.png',
+      'A-26': '11.png', 'A-27': '11.png', 'A-28': '11.png',
+      'A-29': '12.png', 'A-30': '12.png',
+      'A-31': '13.png',
+      'A-32': '14.png', 
+      'A-33': '15.png',
+      'B-1': '16.png',
+      'B-2': '17.png',
+      'B-3': '18.png', 'B-4': '18.png', 'B-5': '18.png',
+      'B-6': '19.png',
+      'B-7': '20.png',
+      'B-8': '21.png',
+      'B-9': '22.png',
+      'B-10': '23.png',
+      'B-11': '24.png',
+      'B-12': '25.png',
+      'B-13': '26.png',
+      'B-14': '27.png',
+      'B-15': '28.png',
+      'B-16': '29.png',
+      'B-17': '30.png',
+      'B-18': '31.png',
+      'B-19': '32.png',
+      'B-20': '33.png',
+      'B-21': '34.png',
+      'B-22': '35.png',
+      'B-23': '36.png',
+      'B-24': '37.png',
+      'B-25': '38.png',
+      'B-26': '39.png',
+      'B-27': '40.png'
+    };
+
+    // I열 너비 설정 (먼저 설정)
+    worksheet.getColumn(9).width = 20; // 너비 증가
+
+    // 품목 데이터 입력 및 이미지 추가
     let rowIndex = itemStartRow;
     
-    quoteData.items.forEach(item => {
+    for (const item of quoteData.items) {
       const row = worksheet.getRow(rowIndex);
       
       row.getCell(1).value = item.name;
@@ -225,8 +275,84 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       row.getCell(8).value = { formula: `F${rowIndex}*G${rowIndex}` };
       row.getCell(8).numFmt = '#,##0';
       
+      // 행 높이 설정 (이미지보다 먼저)
+      row.height = 60; // 픽셀 단위
+      
+      // 이미지 추가 (I열)
+      const imageName = imageMapping[item.id];
+      let imagePath;
+      
+      if (imageName) {
+        imagePath = path.join(__dirname, 'images', imageName);
+      } else {
+        // 매핑에 없으면 default.png 사용
+        imagePath = path.join(__dirname, 'images', 'default.png');
+      }
+      
+      // 이미지 파일이 존재하는지 확인
+      if (fs.existsSync(imagePath)) {
+        try {
+          // 이미지를 workbook에 추가
+          const imageId = workbook.addImage({
+            filename: imagePath,
+            extension: path.extname(imagePath).substring(1),
+          });
+          
+          // I열에 이미지 삽입
+          // 더 정확한 위치 지정으로 셀 안에 꽉 차게
+          worksheet.addImage(imageId, {
+            tl: { col: 8.01, row: rowIndex - 0.99 }, // 약간의 여백
+            br: { col: 8.99, row: rowIndex - 0.01 }, // 약간의 여백
+            editAs: 'oneCell'
+          });
+          
+        } catch (imgError) {
+          console.error(`이미지 추가 실패 (${imagePath}):`, imgError);
+          
+          // 실패하면 default.png 시도
+          const defaultPath = path.join(__dirname, 'images', 'default.png');
+          if (fs.existsSync(defaultPath) && imagePath !== defaultPath) {
+            try {
+              const defaultImageId = workbook.addImage({
+                filename: defaultPath,
+                extension: 'png',
+              });
+              
+              worksheet.addImage(defaultImageId, {
+                tl: { col: 8.05, row: rowIndex - 0.95 },
+                br: { col: 8.95, row: rowIndex - 0.05 },
+                editAs: 'oneCell'
+              });
+            } catch (err) {
+              console.error('default.png 추가도 실패:', err);
+            }
+          }
+        }
+      } else {
+        console.log(`이미지 파일 없음: ${imagePath}`);
+        
+        // 파일이 없으면 default.png 시도
+        const defaultPath = path.join(__dirname, 'images', 'default.png');
+        if (fs.existsSync(defaultPath)) {
+          try {
+            const defaultImageId = workbook.addImage({
+              filename: defaultPath,
+              extension: 'png',
+            });
+            
+            worksheet.addImage(defaultImageId, {
+              tl: { col: 8.05, row: rowIndex - 0.95 },
+              br: { col: 8.95, row: rowIndex - 0.05 },
+              editAs: 'oneCell'
+            });
+          } catch (err) {
+            console.error('default.png 추가 실패:', err);
+          }
+        }
+      }
+      
       rowIndex++;
-    });
+    }
 
     // 운송비 추가
     if (quoteData.transportQuantity > 0) {
@@ -245,31 +371,33 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
       row.getCell(8).value = { formula: `F${rowIndex}*G${rowIndex}` };
       row.getCell(8).numFmt = '#,##0';
       
+      row.height = 20; // 운송비 행은 이미지 없으므로 작게
+      
       rowIndex++;
     }
 
-    // ⭐ 합계 관련 행 위치 계산
-    const totalRow = fixedRowStart + rowsAdded;      // 공급가액 합계 행
-    const vatRow = totalRow + 1;                      // 세액 행
-    const grandTotalRow = totalRow + 2;               // 최종 합계 행
+    // 합계 관련 행 위치 계산
+    const totalRow = fixedRowStart + rowsAdded;
+    const vatRow = totalRow + 1;
+    const grandTotalRow = totalRow + 2;
     const lastItemRow = rowIndex - 1;
     
-    // 1. 공급가액 합계 (H17 또는 동적 위치)
+    // 1. 공급가액 합계
     const totalCell = worksheet.getRow(totalRow).getCell(8);
     totalCell.value = { formula: `SUM(H${itemStartRow}:H${lastItemRow})` };
     totalCell.numFmt = '#,##0';
     
-    // 2. 세액 (부가세 10%) - 합계의 10%
+    // 2. 세액 (부가세 10%)
     const vatCell = worksheet.getRow(vatRow).getCell(8);
     vatCell.value = { formula: `H${totalRow}*0.1` };
     vatCell.numFmt = '#,##0';
     
-    // 3. 최종 합계 (공급가액 + 세액)
+    // 3. 최종 합계
     const grandTotalCell = worksheet.getRow(grandTotalRow).getCell(8);
     grandTotalCell.value = { formula: `H${totalRow}+H${vatRow}` };
     grandTotalCell.numFmt = '#,##0';
 
-    // ⭐ 4. B7 셀의 금액 표시 수식 업데이트
+    // 4. B7 셀의 금액 표시 수식 업데이트
     const b7Cell = worksheet.getCell('B7');
     b7Cell.value = { 
       formula: `"일금 "&NUMBERSTRING(H${grandTotalRow},1)&" 원정 (\\"&TEXT(H${grandTotalRow},"#,##0")&") 부가세포함"` 
@@ -281,7 +409,7 @@ ipcMain.handle('generate-excel', async (event, quoteData) => {
     worksheet.getCell(`C${infoRow}`).value = `설치 날짜 : ${quoteData.installDate}`;
     worksheet.getCell(`H${infoRow}`).value = `회수 날짜 : ${quoteData.retrievalDate}`;
 
-    // 이미지 추가
+    // 이미지 추가 (NH, AR)
     const arImagePath = path.join(__dirname, 'templates', 'AR.png');
     const nhImagePath = path.join(__dirname, 'templates', 'NH.png');
 
