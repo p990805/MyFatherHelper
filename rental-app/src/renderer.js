@@ -3,6 +3,55 @@ let masterItems = [];
 let selectedItems = [];
 const priceFields = ['price_1_3', 'price_4_7', 'price_8_10', 'price_11_14', 'price_15_20', 'price_21_31', 'price_1_2m', 'price_2_3m'];
 
+// 이미지 매핑 객체
+const imageMapping = {
+  'A-1': '1.png', 'A-2': '1.png', 'A-3': '1.png',
+  'A-4': '2.png', 'A-5': '2.png', 'A-6': '2.png', 'A-7': '2.png',
+  'A-8': '3.png', 'A-9': '3.png', 'A-10': '3.png',
+  'A-11': '4.png', 'A-12': '4.png', 'A-13': '4.png',
+  'A-14': '5.png', 'A-15': '5.png',
+  'A-16': '6.png', 'A-17': '6.png', 'A-18': '6.png',
+  'A-19': '7.png', 'A-20': '7.png', 'A-21': '7.png',
+  'A-22': '8.png',
+  'A-23': '9.png',
+  'A-24': '10.png', 'A-25': '10.png',
+  'A-26': '11.png', 'A-27': '11.png', 'A-28': '11.png',
+  'A-29': '12.png', 'A-30': '12.png',
+  'A-31': '13.png', 'A-32': '13.png',
+  'A-33': '14.png',
+  'B-1': '15.png',
+  'B-2': '16.png',
+  'B-3': '17.png', 'B-4': '17.png', 'B-5': '17.png',
+  'B-6': '18.png',
+  'B-7': '19.png',
+  'B-8': '20.png',
+  'B-9': '21.png',
+  'B-10': '22.png',
+  'B-11': '23.png',
+  'B-12': '24.png',
+  'B-13': '25.png',
+  'B-14': '26.png',
+  'B-15': '27.png',
+  'B-16': '28.png',
+  'B-17': '29.png',
+  'B-18': '30.png',
+  'B-19': '31.png',
+  'B-20': '32.png',
+  'B-21': '33.png',
+  'B-22': '34.png',
+  'B-23': '35.png',
+  'B-24': '36.png',
+  'B-25': '37.png',
+  'B-26': '38.png',
+  'B-27': '39.png'
+};
+
+// 이미지 경로 가져오기 함수
+function getImagePath(itemId) {
+  const imageName = imageMapping[itemId];
+  return imageName ? `../images/${imageName}` : '../images/default.png';
+}
+
 // DOM 요소
 const elements = {
   importDataBtn: document.getElementById('importDataBtn'),
@@ -77,15 +126,11 @@ function renderItemList(filter = '') {
     grouped[category].forEach(item => {
       const periodIndex = parseInt(elements.rentalPeriod.value);
       const price = item[priceFields[periodIndex]] || 0;
-      
-      // 이미지 태그 추가
-      const imageHtml = item.image 
-        ? `<img src="file://${item.image}" alt="${item.name}" class="item-image" onerror="this.style.display='none'">`
-        : '<div class="item-no-image">📷</div>';
+      const imagePath = getImagePath(item.id);
       
       html += `
         <div class="item-card" data-id="${item.id}">
-          ${imageHtml}
+          <img src="${imagePath}" alt="${item.name}" class="item-image" onerror="this.src='../images/default.png'">
           <div class="item-info">
             <div class="item-name">${item.name}</div>
             <div class="item-size">${item.size || ''}</div>
