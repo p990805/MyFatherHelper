@@ -138,9 +138,6 @@ ipcMain.handle('save-quote', (event, quoteData) => {
 });
 
 // main.js의 generate-excel 핸들러 부분 - B7 수식 업데이트 추가
-
-// main.jsの generate-excel ハンドラー部分 - 이미지 추가 버전
-
 ipcMain.handle('generate-excel', async (event, quoteData) => {
   try {
     const templatePath = path.join(__dirname, 'templates', '견적서_템플릿.xlsx');
