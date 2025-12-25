@@ -4,43 +4,34 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
-// 1. 품목(마스터 데이터) 테이블
+// 아버님 엑셀 파일에 딱 맞춘 품목 테이블
 model Item {
-  id          Int      @id @default(autoincrement()) // 고유 번호 (자동생성)
-  code        String?  @unique                       // 품목 코드 (선택사항)
-  name        String                                 // 품명 (필수)
-  category    String?                                // 분류
-  spec        String?                                // 규격
-  unit        String?                                // 단위
-  price       Int      @default(0)                   // 기본 단가
-  imagePath   String?                                // 이미지 경로
-  createdAt   DateTime @default(now())               // 등록일
-  updatedAt   DateTime @updatedAt                    // 수정일
+  id        Int      @id @default(autoincrement())
+  code      String?  @unique // A-1, B-9 같은 코드
+  name      String   // 제품명 (25박스 메탈 직냉식)
+  category  String?  // 카테고리
+  spec      String?  // 사이즈 (627*800*1900)
+  
+  // 기간별 단가 (엑셀 컬럼에 맞춤)
+  price1to3   Int @default(0) // 1~3일
+  price4to7   Int @default(0) // 4~7일
+  price8to10  Int @default(0) // 8~10일
+  price11to14 Int @default(0) // 11~14일
+  price15to20 Int @default(0) // 15~20일
+  price21to31 Int @default(0) // 21~31일 (1개월)
+  priceOver1M Int @default(0) // 1개월 이후
+  
+  imagePath String? // 이미지 (참조용)
+  createdAt DateTime @default(now())
 }
 
-// 2. 견적서 테이블
 model Quote {
   id          Int      @id @default(autoincrement())
-  clientName  String   // 거래처명
-  eventName   String   // 행사명
-  eventDate   DateTime // 행사일
-  totalAmount Int      // 총 합계
+  clientName  String
+  eventName   String
+  totalAmount Int
   createdAt   DateTime @default(now())
-  
-  // 견적서와 품목은 서로 연결됨 (나중에 구현)
-  items       QuoteItem[]
-}
-
-// 3. 견적서 상세 품목
-model QuoteItem {
-  id        Int    @id @default(autoincrement())
-  quoteId   Int
-  quote     Quote  @relation(fields: [quoteId], references: [id])
-  name      String // 당시 품명 (품목 마스터가 변해도 기록 유지를 위해)
-  quantity  Int    // 수량
-  price     Int    // 당시 단가
-  amount    Int    // 금액 (단가 * 수량)
 }
