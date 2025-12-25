@@ -1,5 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
+import { connectDB } from './db'
+import { setupExcelHandlers } from './excelHandler'
 
 // 여기에 'as string'을 붙이거나, 아래 로직을 수정합니다.
 // 가장 깔끔한 해결책은 아래와 같습니다.
@@ -12,13 +14,15 @@ let win: BrowserWindow | null
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
 function createWindow() {
+  console.log('Preload 경로 확인:', path.join(__dirname, 'preload.js'));
   win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.ts'), // .js가 아니라 .ts로 경로를 잡아야 빌드 도구가 알아서 처리할 때도 있습니다. (보통은 vite가 .js로 변환된걸 찾으므로 .js 유지해도 됨, 다만 빨간줄 없애려면 아래 참고)
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: false
     },
     autoHideMenuBar: true,
   })
@@ -44,4 +48,8 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(async () => {
+  await connectDB()
+  setupExcelHandlers() // <--- 2. 이거 추가 (DB 연결 직후에)
+  createWindow()
+})
