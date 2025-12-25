@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LayoutDashboard, FileText, Box, Settings, LogOut, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import Items from './Items'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -71,6 +72,7 @@ export default function Dashboard() {
 
         <div className="p-8">
           {/* 여기가 내용이 바뀌는 부분입니다 */}
+          {activeMenu === 'items' && <Items />}
           {activeMenu === 'dashboard' && (
             <div className="grid grid-cols-3 gap-6">
               {/* 대시보드 카드 예시 */}
