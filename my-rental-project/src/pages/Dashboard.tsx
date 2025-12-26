@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { LayoutDashboard, FileText, Box, Settings, LogOut, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Items from './Items'
+import QuoteNew from './QuoteNew'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -91,11 +92,7 @@ export default function Dashboard() {
             </div>
           )}
           
-          {activeMenu === 'quote-new' && (
-            <div className="bg-white h-96 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-gray-400">
-              이곳에 견적서 작성 화면이 들어갑니다
-            </div>
-          )}
+          {activeMenu === 'quote-new' && <QuoteNew />}
         </div>
       </main>
     </div>

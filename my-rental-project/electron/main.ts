@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow,ipcMain } from 'electron'
 import path from 'node:path'
-import { connectDB } from './db'
+import { connectDB, prisma } from './db'
 import { setupExcelHandlers } from './excelHandler'
 
 // 여기에 'as string'을 붙이거나, 아래 로직을 수정합니다.
@@ -28,7 +28,6 @@ function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
-    // [수정 포인트] 뒤에 'as string'을 붙여줍니다.
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
     win.loadFile(path.join(process.env.DIST, 'index.html'))
@@ -50,6 +49,21 @@ app.on('activate', () => {
 
 app.whenReady().then(async () => {
   await connectDB()
-  setupExcelHandlers() // <--- 2. 이거 추가 (DB 연결 직후에)
+  setupExcelHandlers()
+  
+  // [추가할 부분] DB에서 품목 리스트 가져오는 기능 등록
+  ipcMain.handle('get-items', async () => {
+    try {
+      // 코드를 기준으로 정렬해서 가져오기
+      const items = await prisma.item.findMany({
+        orderBy: { code: 'asc' }
+      })
+      return { success: true, data: items }
+    } catch (error) {
+      console.error('품목 조회 실패:', error)
+      return { success: false, data: [] }
+    }
+  })
+
   createWindow()
 })

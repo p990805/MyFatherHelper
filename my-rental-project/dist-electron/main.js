@@ -61868,5 +61868,16 @@ electron.app.on("activate", () => {
 electron.app.whenReady().then(async () => {
   await connectDB();
   setupExcelHandlers();
+  electron.ipcMain.handle("get-items", async () => {
+    try {
+      const items = await prisma.item.findMany({
+        orderBy: { code: "asc" }
+      });
+      return { success: true, data: items };
+    } catch (error2) {
+      console.error("품목 조회 실패:", error2);
+      return { success: false, data: [] };
+    }
+  });
   createWindow();
 });
